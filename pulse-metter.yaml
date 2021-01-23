@@ -1,0 +1,7 @@
+sensor:
+  - platform: pulse_counter
+    pin: 12
+    unit_of_measurement: 'kW'
+    name: 'Power Meter'
+    filters:
+      - multiply: 0.06
