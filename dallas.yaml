@@ -1,0 +1,8 @@
+dallas:
+  - pin: 23
+
+# Individual sensors
+sensor:
+  - platform: dallas
+    address: 0x730300A279773428
+    name: "description"
