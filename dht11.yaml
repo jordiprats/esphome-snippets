@@ -1,0 +1,19 @@
+sensor:
+  - platform: dht
+    pin: GPIO2
+    model: DHT11
+    update_interval: 4s
+    temperature:
+      name: "Temperatura"
+      filters:
+        - sliding_window_moving_average:
+            window_size: 15
+            send_every: 15
+            send_first_at: 15
+    humidity:
+      name: "Humitat"
+      filters:
+        - sliding_window_moving_average:
+            window_size: 15
+            send_every: 15
+            send_first_at: 15
