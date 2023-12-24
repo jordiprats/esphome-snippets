@@ -1,5 +1,5 @@
 sensor:
-  - platform: pulse_counter
+  - platform: pulse_meter
     pin: 12
     unit_of_measurement: 'kW'
     name: 'Power Meter House'
@@ -8,6 +8,8 @@ sensor:
 
     total:
       unit_of_measurement: 'kWh'
+      accuracy_decimals: 3
+      state_class: total_increasing
       name: 'Energy Meter House'
       filters:
         - multiply: 0.00025  # 1/4000=0.00025
