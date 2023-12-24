@@ -1,5 +1,11 @@
 sensor:
-  - platform: pulse_meter
+  # WiFi signal
+  - platform: wifi_signal
+    name: "${friendly_name} - WiFi Signal"
+    update_interval: 120s
+
+  # Pulse meter
+  - platform: pulse_counter
     pin: 12
     unit_of_measurement: 'kW'
     name: 'Power Meter House'
