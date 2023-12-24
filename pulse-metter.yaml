@@ -2,6 +2,12 @@ sensor:
   - platform: pulse_counter
     pin: 12
     unit_of_measurement: 'kW'
-    name: 'Power Meter'
+    name: 'Power Meter House'
     filters:
-      - multiply: 0.06
+      - multiply: 0.015  # 60/4000=0.015
+
+    total:
+      unit_of_measurement: 'kWh'
+      name: 'Energy Meter House'
+      filters:
+        - multiply: 0.00025  # 1/4000=0.00025
