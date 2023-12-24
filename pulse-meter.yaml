@@ -1,7 +1,7 @@
 sensor:
   # WiFi signal
   - platform: wifi_signal
-    name: "${friendly_name} - WiFi Signal"
+    name: "Power Meter WiFi Signal"
     update_interval: 120s
 
   # Pulse meter
