@@ -12,9 +12,7 @@ sensor:
     state_class: measurement
     device_class: power
     filters:
-      # multiply value = (60 / imp value) * 1000
-      # - multiply: 60
-      - lambda: return x * ((60.0 / 4000.0) * 1000.0);
+      - multiply: 0.015 # 60/4000=0.015
 
     total:
       unit_of_measurement: 'kWh'
@@ -23,6 +21,8 @@ sensor:
       device_class: energy
       name: 'Energy Meter House'
       filters:
-        # multiply value = 1 / imp value
-        # - multiply: 0.001
-        - lambda: return x * (1.0 / 4000.0);
+        - multiply: 0.00025 # 1/4000=0.00025
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
