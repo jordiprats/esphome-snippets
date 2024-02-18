@@ -1,0 +1,107 @@
+alias: Sound siren
+fields:
+  siren:
+    description: Siren sound
+    selector:
+      select:
+        options:
+          - label: bell 1
+            value: "2"
+          - label: double bell
+            value: "3"
+          - label: alarm
+            value: "6"
+          - label: alarm 2
+            value: "7"
+          - label: warning
+            value: "8"
+          - label: beep
+            value: "8"
+          - label: dog
+            value: "10"
+          - label: alarm 3
+            value: "11"
+          - label: bell 2
+            value: "12"
+          - label: police
+            value: "14"
+          - label: alarm clock
+            value: "15"
+          - label: alarm clock 2
+            value: "16"
+          - label: bell 3
+            value: "18"
+    name: Siren
+    default: warning
+    required: true
+  volume:
+    description: Siren volume
+    name: Volume
+    default: low
+    required: true
+    selector:
+      select:
+        options:
+          - label: low
+            value: "0"
+          - label: medium
+            value: "1"
+          - label: high
+            value: "2"
+  duration:
+    description: Siren duration (s)
+    name: Duration
+    default: 10
+    required: true
+    selector:
+      number:
+        mode: box
+        unit_of_measurement: seconds
+        min: 1
+        max: 59
+sequence:
+  - service: zha.set_zigbee_cluster_attribute
+    data:
+      cluster_type: in
+      ieee: aa:bb:cc:dd:ee:ff:00:11
+      endpoint_id: 1
+      cluster_id: 6
+      attribute: 1126
+      value: "{{ siren | default('8') }}"
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 0
+      milliseconds: 30
+  - service: zha.set_zigbee_cluster_attribute
+    data:
+      cluster_type: in
+      ieee: aa:bb:cc:dd:ee:ff:00:11
+      endpoint_id: 1
+      cluster_id: 6
+      attribute: 1140
+      value: "{{ volume | default('0') }}"
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 0
+      milliseconds: 30
+  - service: zha.set_zigbee_cluster_attribute
+    data:
+      cluster_type: in
+      ieee: aa:bb:cc:dd:ee:ff:00:11
+      endpoint_id: 1
+      cluster_id: 6
+      attribute: 615
+      value: "{{ duration | default('10') }}"
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 1
+      milliseconds: 0
+  - service: switch.turn_on
+    data: {}
+    target:
+      entity_id: switch.siren_switch
+mode: single
+icon: mdi:bugle
