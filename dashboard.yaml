@@ -1,0 +1,366 @@
+esphome:
+  name: dashboard
+  friendly_name: dashboard
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Dashboard Fallback Hotspot"
+    password: "oFLdGTOyKi1b"
+
+  on_connect:
+    then:
+      - lambda: |-
+          id(wifi_status) = 1;
+  on_disconnect:
+    then:
+      - lambda: |-
+          id(wifi_status) = 0;
+
+# define SPI interface
+spi:
+  clk_pin: GPIO8
+  mosi_pin: GPIO10
+
+# start
+
+globals:
+  - id: wifi_status
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: first_update_done
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+
+captive_portal:
+
+# Here is deep sleep part
+deep_sleep:
+  id: deep_sleep_1
+  run_duration: 1min  # Device wake up and run 60s (enough to pull data and update)
+  sleep_duration: 60min  # deep sleep for 1h
+
+script:
+  - id: update_display
+    then:
+      - component.update: my_display
+
+interval:
+  # Condition: wifi connected && data retrieved && first time
+  - interval: 10s
+    then:
+      - if:
+          condition:
+            and:
+              - wifi.connected:
+              - lambda: "return !id(first_update_done);"
+          then:
+            - lambda: |-
+                ESP_LOGD("Display", "Updating Display...");
+            - script.execute: update_display  # Refresh immediately
+            - lambda: "id(first_update_done) = true;"
+  - interval: 59s  # run this command before 1s of run_duration end
+    then:
+      - logger.log: "Entering deep sleep now..."
+
+
+# Connect to Home Assistant to get time
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+text_sensor:
+  - platform: homeassistant
+    entity_id: weather.forecast_home
+    id: myWeather
+  - platform: homeassistant
+    entity_id: sensor.electricity_kwh_day
+    id: kwh_day
+  - platform: homeassistant
+    entity_id: sensor.office_air_quality_pm2_5
+    id: officepm25
+  - platform: homeassistant
+    entity_id: sensor.inside_temperature
+    id: inside_c
+  - platform: homeassistant
+    entity_id: sensor.outside_temperature
+    id: outside_c
+  - platform: homeassistant
+    entity_id: sensor.monstera_moisture
+    id: monstera
+  - platform: homeassistant
+    entity_id: sensor.schefflera_moisture
+    id: schefflera
+  - platform: homeassistant
+    entity_id: sensor.hibiscus_moisture
+    id: hibiscus
+  - platform: homeassistant
+    entity_id: sensor.mandevilla_moisture
+    id: mandevilla
+
+font:
+  - file: "fonts/Montserrat-Black.ttf"
+    id: web_font
+    size: 20
+  - file: "fonts/Montserrat-Black.ttf"
+    id: data_font
+    size: 30
+  - file: "fonts/Montserrat-Black.ttf"
+    id: sensor_font
+    size: 22
+
+  - file: "gfonts://Inter@700" #
+    id: font1
+    size: 24
+
+  - file: 'fonts/materialdesignicons-webfont.ttf' # Directory to save ttf file
+    id: font_mdi_large
+    size: 200
+    glyphs: &mdi-weather-glyphs # https://pictogrammers.com/library/mdi/
+      - "\U000F050F" # Thermometer
+      - "\U000F058E" # Humidity
+      - "\U000F0590" # Cloudy weather
+      - "\U000F0596" # Rainy weather
+      - "\U000F0598" # Snowy weather
+      - "\U000F0599" # Sunny weather
+      - "\U000F0595" # partially cloudy
+      - "\U000F1B5A" # windy
+      - "\U000F0D43" # air filter
+      - "\U000F1904" # electricity
+  - file: 'fonts/materialdesignicons-webfont.ttf'
+    id: font_weather # Copy the above icon and change the size to 40
+    size: 200
+    glyphs: *mdi-weather-glyphs
+  - file: 'fonts/materialdesignicons-webfont.ttf'
+    id: img_font_sensor # Copy the above icon and change the size to 40
+    size: 70
+    glyphs: *mdi-weather-glyphs
+
+display:
+  - platform: waveshare_epaper
+    id: my_display
+    cs_pin: GPIO3
+    dc_pin: GPIO5
+    busy_pin: GPIO4
+    reset_pin: GPIO2
+    model: 7.50inv2
+    update_interval: 50s
+    lambda: |-
+      if(id(wifi_status) == 0){
+        it.print(230, 230, id(data_font), "CONNECTING to WI-FI");
+      }else{
+        // Draw weather images here
+        std::string weather_string = id(myWeather).state.c_str();
+        if (weather_string == "rainy" || weather_string == "lightning" || weather_string == "pouring" || weather_string == "hail") {
+          // rainy icon
+          it.printf(120, 85, id(font_weather), TextAlign::CENTER, "\U000F0596"); 
+        } else if (weather_string == "snowy") {
+          // snowy icon
+          it.printf(120, 85, id(font_weather), TextAlign::CENTER, "\U000F0598");
+        } else if (weather_string == "sunny" || weather_string == "clear-night") {
+          // sunny/clear icon
+          it.printf(120, 85, id(font_weather), TextAlign::CENTER, "\U000F0599");
+        } else if (weather_string == "partlycloudy") {
+          // partly cloudy icon
+          it.printf(120, 85, id(font_weather), TextAlign::CENTER, "\U000F0595");
+        } else if (weather_string == "fog") {
+          // maybe use cloudy icon or find a fog icon (not in your glyphs)
+          it.printf(120, 85, id(font_weather), TextAlign::CENTER, "\U000F0590");
+        } else if (weather_string == "windy") {
+          // windy
+          it.printf(120, 85, id(font_weather), TextAlign::CENTER, "\U000F1B5A");
+        } else {
+          // default to cloudy
+          it.printf(120, 85, id(font_weather), TextAlign::CENTER, "\U000F0590");
+        }
+
+        auto time_now = id(homeassistant_time).now();
+        // Month conversion
+        const char* months[] = {
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"
+        };
+        const char* month_str = months[time_now.month - 1];  // Month index starts from 0
+        // Get the day
+        int day = time_now.day_of_month;
+        // Draw the date
+        it.printf(250, 110, id(data_font), "%s %d", month_str, day);
+        // Get the day of the week
+        const char* days[] = {"Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
+        const char* day_of_week = days[time_now.day_of_week];
+        it.printf(250, 70, id(data_font), "%s", day_of_week);
+
+        int x = 20, y = 180, w = 180, h = 120, r = 10, thickness = 4;
+        // Draw four borders
+        it.filled_rectangle(x + r, y, w - 2 * r, thickness); // Top border
+        it.filled_rectangle(x + r, y + h - thickness, w - 2 * r, thickness); // Bottom border
+        it.filled_rectangle(x, y + r, thickness, h - 2 * r); // Left border
+        it.filled_rectangle(x + w - thickness, y + r, thickness, h - 2 * r); // Right border
+        // Draw four rounded corners
+        it.filled_circle(x + r, y + r, r); // Top-left corner
+        it.filled_circle(x + w - r, y + r, r); // Top-right corner
+        it.filled_circle(x + r, y + h - r, r); // Bottom-left corner
+        it.filled_circle(x + w - r, y + h - r, r); // Bottom-right corner
+        // Fill the inside with black to form a border
+        it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
+        // Temperature inside
+        it.printf(x+10, y+10, id(sensor_font), "Inside");
+        it.printf(x+40, y+70, id(img_font_sensor), TextAlign::CENTER, "\U000F050F");
+        it.printf(x+65,y+65, id(data_font), "%sC", id(inside_c).state.c_str() != "unavailable" ? id(inside_c).state.c_str() : "-");
+
+        x = 220;
+        y = 180;
+        // Draw four borders
+        it.filled_rectangle(x + r, y, w - 2 * r, thickness); // Top border
+        it.filled_rectangle(x + r, y + h - thickness, w - 2 * r, thickness); // Bottom border
+        it.filled_rectangle(x, y + r, thickness, h - 2 * r); // Left border
+        it.filled_rectangle(x + w - thickness, y + r, thickness, h - 2 * r); // Right border
+        // Draw four rounded corners
+        it.filled_circle(x + r, y + r, r); // Top-left corner
+        it.filled_circle(x + w - r, y + r, r); // Top-right corner
+        it.filled_circle(x + r, y + h - r, r); // Bottom-left corner
+        it.filled_circle(x + w - r, y + h - r, r); // Bottom-right corner
+        // Fill the inside with black to form a border
+        it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
+        // kWh
+        it.printf(x+10, y+10, id(sensor_font), "kWh/day");
+        it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F1904");
+        float value = 0.0f;
+        if (id(kwh_day).state.c_str() != "unavailable") {
+            value = atof(id(kwh_day).state.c_str());
+            it.printf(x+75, y+65, id(data_font), "%.2f", value);
+        } else {
+            it.printf(x+85, y+65, id(data_font), "-");
+        }
+
+        x = 20;
+        y = 320;
+        // Draw four borders
+        it.filled_rectangle(x + r, y, w - 2 * r, thickness); // Top border
+        it.filled_rectangle(x + r, y + h - thickness, w - 2 * r, thickness); // Bottom border
+        it.filled_rectangle(x, y + r, thickness, h - 2 * r); // Left border
+        it.filled_rectangle(x + w - thickness, y + r, thickness, h - 2 * r); // Right border
+        // Draw four rounded corners
+        it.filled_circle(x + r, y + r, r); // Top-left corner
+        it.filled_circle(x + w - r, y + r, r); // Top-right corner
+        it.filled_circle(x + r, y + h - r, r); // Bottom-left corner
+        it.filled_circle(x + w - r, y + h - r, r); // Bottom-right corner
+        // Fill the inside with black to form a border
+        it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
+        // Temperature outside
+        it.printf(x+10, y+10, id(sensor_font), "Outside");
+        it.printf(x+40, y+70, id(img_font_sensor), TextAlign::CENTER, "\U000F050F");
+        it.printf(x+65,y+65, id(data_font), "%sC", id(outside_c).state.c_str() != "unavailable" ? id(outside_c).state.c_str() : "-");
+
+        x = 220;
+        y = 320;
+        // Draw four borders
+        it.filled_rectangle(x + r, y, w - 2 * r, thickness); // Top border
+        it.filled_rectangle(x + r, y + h - thickness, w - 2 * r, thickness); // Bottom border
+        it.filled_rectangle(x, y + r, thickness, h - 2 * r); // Left border
+        it.filled_rectangle(x + w - thickness, y + r, thickness, h - 2 * r); // Right border
+        // Draw four rounded corners
+        it.filled_circle(x + r, y + r, r); // Top-left corner
+        it.filled_circle(x + w - r, y + r, r); // Top-right corner
+        it.filled_circle(x + r, y + h - r, r); // Bottom-left corner
+        it.filled_circle(x + w - r, y + h - r, r); // Bottom-right corner
+        // Fill the inside with black to form a border
+        it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
+        // Office PM2.5
+        it.printf(x+10, y+10, id(sensor_font), "Office PM 2.5");
+        it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F0D43");
+        it.printf(x+85,y+50, id(data_font), "%s", id(officepm25).state.c_str() != "unavailable" ? id(officepm25).state.c_str() : "-");
+        it.printf(x+85,y+78, id(sensor_font), "ug/m3");
+
+        // Right section
+
+        x = 410;
+        y = 180;
+        // Draw four borders
+        it.filled_rectangle(x + r, y, w - 2 * r, thickness); // Top border
+        it.filled_rectangle(x + r, y + h - thickness, w - 2 * r, thickness); // Bottom border
+        it.filled_rectangle(x, y + r, thickness, h - 2 * r); // Left border
+        it.filled_rectangle(x + w - thickness, y + r, thickness, h - 2 * r); // Right border
+        // Draw four rounded corners
+        it.filled_circle(x + r, y + r, r); // Top-left corner
+        it.filled_circle(x + w - r, y + r, r); // Top-right corner
+        it.filled_circle(x + r, y + h - r, r); // Bottom-left corner
+        it.filled_circle(x + w - r, y + h - r, r); // Bottom-right corner
+        // Fill the inside with black to form a border
+        it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
+        // Monstera
+        it.printf(x+10, y+10, id(sensor_font), "Monstera");
+        it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F058E");
+        it.printf(x+70,y+65, id(data_font), "%s%%", id(monstera).state.c_str() != "unavailable" ? id(monstera).state.c_str() : "-");
+
+        x = 610;
+        y = 180;
+        // Draw four borders
+        it.filled_rectangle(x + r, y, w - 2 * r, thickness); // Top border
+        it.filled_rectangle(x + r, y + h - thickness, w - 2 * r, thickness); // Bottom border
+        it.filled_rectangle(x, y + r, thickness, h - 2 * r); // Left border
+        it.filled_rectangle(x + w - thickness, y + r, thickness, h - 2 * r); // Right border
+        // Draw four rounded corners
+        it.filled_circle(x + r, y + r, r); // Top-left corner
+        it.filled_circle(x + w - r, y + r, r); // Top-right corner
+        it.filled_circle(x + r, y + h - r, r); // Bottom-left corner
+        it.filled_circle(x + w - r, y + h - r, r); // Bottom-right corner
+        // Fill the inside with black to form a border
+        it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
+        // Schefflera
+        it.printf(x+10, y+10, id(sensor_font), "Schefflera");
+        it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F058E");
+        it.printf(x+70,y+65, id(data_font), "%s%%", id(schefflera).state.c_str() != "unavailable" ? id(schefflera).state.c_str() : "-");
+
+        x = 410;
+        y = 320;
+        // Draw four borders
+        it.filled_rectangle(x + r, y, w - 2 * r, thickness); // Top border
+        it.filled_rectangle(x + r, y + h - thickness, w - 2 * r, thickness); // Bottom border
+        it.filled_rectangle(x, y + r, thickness, h - 2 * r); // Left border
+        it.filled_rectangle(x + w - thickness, y + r, thickness, h - 2 * r); // Right border
+        // Draw four rounded corners
+        it.filled_circle(x + r, y + r, r); // Top-left corner
+        it.filled_circle(x + w - r, y + r, r); // Top-right corner
+        it.filled_circle(x + r, y + h - r, r); // Bottom-left corner
+        it.filled_circle(x + w - r, y + h - r, r); // Bottom-right corner
+        // Fill the inside with black to form a border
+        it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
+        // Hibiscus
+        it.printf(x+10, y+10, id(sensor_font), "Hibiscus");
+        it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F058E");
+        it.printf(x+70,y+65, id(data_font), "%s%%", id(hibiscus).state.c_str() != "unavailable" ? id(hibiscus).state.c_str() : "-");
+
+        x = 610;
+        y = 320;
+        // Draw four borders
+        it.filled_rectangle(x + r, y, w - 2 * r, thickness); // Top border
+        it.filled_rectangle(x + r, y + h - thickness, w - 2 * r, thickness); // Bottom border
+        it.filled_rectangle(x, y + r, thickness, h - 2 * r); // Left border
+        it.filled_rectangle(x + w - thickness, y + r, thickness, h - 2 * r); // Right border
+        // Draw four rounded corners
+        it.filled_circle(x + r, y + r, r); // Top-left corner
+        it.filled_circle(x + w - r, y + r, r); // Top-right corner
+        it.filled_circle(x + r, y + h - r, r); // Bottom-left corner
+        it.filled_circle(x + w - r, y + h - r, r); // Bottom-right corner
+        // Fill the inside with black to form a border
+        it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
+        // Mandevilla
+        it.printf(x+10, y+10, id(sensor_font), "Mandevilla");
+        it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F058E");
+        it.printf(x+70,y+65, id(data_font), "%s%%", id(mandevilla).state.c_str() != "unavailable" ? id(mandevilla).state.c_str() : "-");
+      }
