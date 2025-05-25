@@ -220,7 +220,11 @@ display:
         // Temperature inside
         it.printf(x+10, y+10, id(sensor_font), "Inside");
         it.printf(x+40, y+70, id(img_font_sensor), TextAlign::CENTER, "\U000F050F");
-        it.printf(x+65,y+65, id(data_font), "%sC", id(inside_c).state.c_str() != "unavailable" ? id(inside_c).state.c_str() : "-");
+        if (id(inside_c).state != "unavailable") {
+          it.printf(x+65, y+65, id(data_font), "%.1f C", atof(id(inside_c).state.c_str()));
+        } else {
+          it.printf(x+65, y+65, id(data_font), "-");
+        }
 
         x = 220;
         y = 180;
@@ -264,7 +268,11 @@ display:
         // Temperature outside
         it.printf(x+10, y+10, id(sensor_font), "Outside");
         it.printf(x+40, y+70, id(img_font_sensor), TextAlign::CENTER, "\U000F050F");
-        it.printf(x+65,y+65, id(data_font), "%sC", id(outside_c).state.c_str() != "unavailable" ? id(outside_c).state.c_str() : "-");
+        if (id(outside_c).state != "unavailable") {
+          it.printf(x+65, y+65, id(data_font), "%.1f C", atof(id(outside_c).state.c_str()));
+        } else {
+          it.printf(x+65, y+65, id(data_font), "-");
+        }
 
         x = 220;
         y = 320;
