@@ -91,8 +91,8 @@ text_sensor:
     entity_id: sensor.electricity_kwh_day
     id: kwh_day
   - platform: homeassistant
-    entity_id: sensor.office_air_quality_pm2_5
-    id: officepm25
+    entity_id: sensor.worst_wifi
+    id: worst_wifi
   - platform: homeassistant
     entity_id: sensor.inside_temperature
     id: inside_c
@@ -139,7 +139,7 @@ font:
       - "\U000F0599" # Sunny weather
       - "\U000F0595" # partially cloudy
       - "\U000F1B5A" # windy
-      - "\U000F0D43" # air filter
+      - "\U000F05A9" # wifi
       - "\U000F1904" # electricity
   - file: 'fonts/materialdesignicons-webfont.ttf'
     id: font_weather # Copy the above icon and change the size to 40
@@ -220,10 +220,14 @@ display:
         // Temperature inside
         it.printf(x+10, y+10, id(sensor_font), "Inside");
         it.printf(x+40, y+70, id(img_font_sensor), TextAlign::CENTER, "\U000F050F");
-        if (id(inside_c).state != "unavailable") {
-          it.printf(x+65, y+65, id(data_font), "%.1f C", atof(id(inside_c).state.c_str()));
+        if (
+          strcmp(id(inside_c).state.c_str(), "unavailable") == 0 ||
+          strcmp(id(inside_c).state.c_str(), "unknown") == 0 ||
+          strcmp(id(inside_c).state.c_str(), "") == 0
+        ) {
+          it.printf(x+65, y+65, id(data_font), "---");
         } else {
-          it.printf(x+65, y+65, id(data_font), "-");
+          it.printf(x+65, y+65, id(data_font), "%.1f C", atof(id(inside_c).state.c_str()));
         }
 
         x = 220;
@@ -244,11 +248,15 @@ display:
         it.printf(x+10, y+10, id(sensor_font), "kWh/day");
         it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F1904");
         float value = 0.0f;
-        if (id(kwh_day).state.c_str() != "unavailable") {
-            value = atof(id(kwh_day).state.c_str());
-            it.printf(x+75, y+65, id(data_font), "%.2f", value);
+        if (
+          strcmp(id(kwh_day).state.c_str(), "unavailable") == 0 ||
+          strcmp(id(kwh_day).state.c_str(), "unknown") == 0 ||
+          strcmp(id(kwh_day).state.c_str(), "") == 0
+        ) {
+          it.printf(x+85, y+65, id(data_font), "---");
         } else {
-            it.printf(x+85, y+65, id(data_font), "-");
+          value = atof(id(kwh_day).state.c_str());
+          it.printf(x+75, y+65, id(data_font), "%.2f", value);
         }
 
         x = 20;
@@ -268,10 +276,14 @@ display:
         // Temperature outside
         it.printf(x+10, y+10, id(sensor_font), "Outside");
         it.printf(x+40, y+70, id(img_font_sensor), TextAlign::CENTER, "\U000F050F");
-        if (id(outside_c).state != "unavailable") {
-          it.printf(x+65, y+65, id(data_font), "%.1f C", atof(id(outside_c).state.c_str()));
+        if (
+          strcmp(id(outside_c).state.c_str(), "unavailable") == 0 ||
+          strcmp(id(outside_c).state.c_str(), "unknown") == 0 ||
+          strcmp(id(outside_c).state.c_str(), "") == 0
+        ) {
+          it.printf(x+65, y+65, id(data_font), "---");
         } else {
-          it.printf(x+65, y+65, id(data_font), "-");
+          it.printf(x+65, y+65, id(data_font), "%.1f C", atof(id(outside_c).state.c_str()));
         }
 
         x = 220;
@@ -288,11 +300,18 @@ display:
         it.filled_circle(x + w - r, y + h - r, r); // Bottom-right corner
         // Fill the inside with black to form a border
         it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
-        // Office PM2.5
-        it.printf(x+10, y+10, id(sensor_font), "Office PM 2.5");
-        it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F0D43");
-        it.printf(x+85,y+50, id(data_font), "%s", id(officepm25).state.c_str() != "unavailable" ? id(officepm25).state.c_str() : "-");
-        it.printf(x+85,y+78, id(sensor_font), "ug/m3");
+        // WiFi signal
+        it.printf(x+10, y+10, id(sensor_font), "WiFi signal");
+        it.printf(x+40, y+70, id(img_font_sensor), TextAlign::CENTER, "\U000F05A9");
+        if (
+          strcmp(id(worst_wifi).state.c_str(), "unavailable") == 0 ||
+          strcmp(id(worst_wifi).state.c_str(), "unknown") == 0 ||
+          strcmp(id(worst_wifi).state.c_str(), "") == 0
+        ) {
+          it.printf(x+65,y+65, id(data_font), "---");
+        } else {
+          it.printf(x+65, y+65, id(data_font), "%.0f dB", atof(id(worst_wifi).state.c_str()));
+        }
 
         // Right section
 
@@ -313,7 +332,15 @@ display:
         // Monstera
         it.printf(x+10, y+10, id(sensor_font), "Monstera");
         it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F058E");
-        it.printf(x+70,y+65, id(data_font), "%s%%", id(monstera).state.c_str() != "unavailable" ? id(monstera).state.c_str() : "-");
+        if (
+          strcmp(id(monstera).state.c_str(), "unavailable") == 0 ||
+          strcmp(id(monstera).state.c_str(), "unknown") == 0 ||
+          strcmp(id(monstera).state.c_str(), "") == 0
+        ) {
+          it.printf(x+70,y+65, id(data_font), "---");
+        } else {
+          it.printf(x+70,y+65, id(data_font), "%s%%", id(monstera).state.c_str());
+        }
 
         x = 610;
         y = 180;
@@ -332,7 +359,17 @@ display:
         // Schefflera
         it.printf(x+10, y+10, id(sensor_font), "Schefflera");
         it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F058E");
-        it.printf(x+70,y+65, id(data_font), "%s%%", id(schefflera).state.c_str() != "unavailable" ? id(schefflera).state.c_str() : "-");
+        if (
+          strcmp(id(schefflera).state.c_str(), "unavailable") == 0 ||
+          strcmp(id(schefflera).state.c_str(), "unknown") == 0 ||
+          strcmp(id(schefflera).state.c_str(), "") == 0
+        ) {
+          it.printf(x+70,y+65, id(data_font), "---");
+        } else {
+          it.printf(x+70,y+65, id(data_font), "%s%%", id(schefflera).state.c_str());
+        }
+
+        
 
         x = 410;
         y = 320;
@@ -349,9 +386,18 @@ display:
         // Fill the inside with black to form a border
         it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
         // Hibiscus
-        it.printf(x+10, y+10, id(sensor_font), "Hibiscus");
+        it.printf(x+10, y+10, id(sensor_font), "Espigol");
         it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F058E");
-        it.printf(x+70,y+65, id(data_font), "%s%%", id(hibiscus).state.c_str() != "unavailable" ? id(hibiscus).state.c_str() : "-");
+        if (
+          strcmp(id(hibiscus).state.c_str(), "unavailable") == 0 ||
+          strcmp(id(hibiscus).state.c_str(), "unknown") == 0 ||
+          strcmp(id(hibiscus).state.c_str(), "") == 0
+        ) {
+          it.printf(x+70,y+65, id(data_font), "---");
+        } else {
+          it.printf(x+70,y+65, id(data_font), "%s%%", id(hibiscus).state.c_str());
+        }
+
 
         x = 610;
         y = 320;
@@ -370,5 +416,14 @@ display:
         // Mandevilla
         it.printf(x+10, y+10, id(sensor_font), "Mandevilla");
         it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F058E");
-        it.printf(x+70,y+65, id(data_font), "%s%%", id(mandevilla).state.c_str() != "unavailable" ? id(mandevilla).state.c_str() : "-");
+        if (
+          strcmp(id(mandevilla).state.c_str(), "unavailable") == 0 ||
+          strcmp(id(mandevilla).state.c_str(), "unknown") == 0 ||
+          strcmp(id(mandevilla).state.c_str(), "") == 0
+        ) {
+          it.printf(x+70,y+65, id(data_font), "---");
+        } else {
+          it.printf(x+70,y+65, id(data_font), "%s%%", id(mandevilla).state.c_str());
+        }
+        
       }
