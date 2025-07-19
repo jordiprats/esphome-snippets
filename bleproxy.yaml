@@ -1,0 +1,47 @@
+esphome:
+  name: bleproxy
+  friendly_name: BLEproxy
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: true
+
+bluetooth_proxy:
+  active: true
+
+sensor:
+  # WiFi signal
+  - platform: wifi_signal
+    name: "Power Meter WiFi Signal"
+    update_interval: 120s
+
+# binary_sensor:
+#   - platform: ble_presence
+#     mac_address: "D3:9C:52:22:1B:7A"
+#     name: "Mi Smart Band 6"
+#   - platform: ble_presence
+#     mac_address: "D0:62:2C:F1:6F:F3"
+#     name: "Mi Smart Band 8"
+#   - platform: ble_presence
+#     mac_address: "F1:EB:12:4B:7A:46"
+#     name: "Mi Smart Band 7"
+#   - platform: ble_presence
+#     mac_address: "84:76:37:2E:B8:55"
+#     name: "P30"
+#   - platform: ble_presence
+#     mac_address: "34:1C:F0:F3:CA:B3"
+#     name: "A13"
+#   - platform: ble_presence
+#     mac_address: "80:19:70:F2:C4:69"
+#     name: "Mi10T"
+
+captive_portal:
+    
