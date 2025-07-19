@@ -1,18 +1,40 @@
-# ESP32-CAM
+ 
+sensor:
+  # WiFi signal
+  - platform: wifi_signal
+    name: "Power Meter WiFi Signal"
+    update_interval: 120s
+
+i2c:
+  id: bus_a
+  sda: GPIO26
+  scl: GPIO27
+
 esp32_camera:
   external_clock:
     pin: GPIO0
     frequency: 20MHz
-  i2c_pins:
-    sda: GPIO26
-    scl: GPIO27
+  i2c_id: bus_a
   data_pins: [GPIO5, GPIO18, GPIO19, GPIO21, GPIO36, GPIO39, GPIO34, GPIO35]
   vsync_pin: GPIO25
   href_pin: GPIO23
   pixel_clock_pin: GPIO22
   power_down_pin: GPIO32
-  name: peix1
-  
+  resolution: 800x600
+  name: doorbell
+  idle_framerate: 0.2fps
+  vertical_flip: false
+  horizontal_mirror: false
+  contrast: 2
+  brightness: 2
+  jpeg_quality: 12
+
+esp32_camera_web_server:
+  - port: 8080
+    mode: stream
+  - port: 8081
+    mode: snapshot
+
 # Flashlight
 output:
   - platform: gpio
