@@ -381,7 +381,7 @@ display:
         // Fill the inside with black to form a border
         it.filled_rectangle(x + thickness, y + thickness, w - 2 * thickness, h - 2 * thickness, COLOR_OFF);
         // Hibiscus
-        it.printf(x+10, y+10, id(sensor_font), "Espigol");
+        it.printf(x+10, y+10, id(sensor_font), "Olivera");
         it.printf(x+40, y+75, id(img_font_sensor), TextAlign::CENTER, "\U000F058E");
         if (
           strcmp(id(hibiscus).state.c_str(), "unavailable") == 0 ||
